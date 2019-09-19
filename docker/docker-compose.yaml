@@ -1,0 +1,55 @@
+version: '3.4'
+
+services:
+  ms-sublearn-back:
+    image: almazic91/sub-learn-back:${BACK_IMAGE_VERSION}
+    depends_on:
+      - sublearn-db
+      - ms-sublearn-translator
+      - ms-sublearn-telegram
+    ports:
+      - 8080:8080
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://sublearn-db:5432/sublearndb
+      SPRING_PROFILES_ACTIVE: default
+      SERVER_PORT: 8080
+
+  sublearn-db:
+    container_name: sublearn-db
+    image: postgres:11-alpine
+    restart: always
+    environment:
+      POSTGRES_USER:
+      POSTGRES_PASSWORD:
+      POSTGRES_DB:
+
+  ms-sublearn-translator:
+    image: almazic91/sub-learn-translator:${TRANSLATOR_IMAGE_VERSION}
+    ports:
+      - 8081:8080
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+      SERVER_PORT: 8080
+      YANDEX_DICT_URL:
+      YANDEX_DICT_KEY:
+      YANDEX_TRANSLATE_URL:
+      YANDEX_TRANSLATE_KEY:
+
+  ms-sublearn-telegram:
+    image: almazic91/sub-learn-telegram:${TELEGRAM_IMAGE_VERSION}
+    depends_on:
+      - redis
+    ports:
+      - 8082:8080
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+      SERVER_PORT: 8080
+      TG_TOKEN:
+      TG_USERNAME:
+
+  redis:
+    container_name: redis
+    image: redis
+    restart: always
+    ports:
+      - 6379:6379
