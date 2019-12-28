@@ -6,12 +6,18 @@ services:
     depends_on:
       - sublearn-db
       - ms-sublearn-translator
+      - rabbitmq
+      - redis
     ports:
       - 8080:8080
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://sublearn-db:5432/sublearndb
       SPRING_PROFILES_ACTIVE: default
       SERVER_PORT: 8080
+      SUBLEARN_BACK_USER_LOGIN:
+      SUBLEARN_BACK_USER_PASSWORD:
+      SUBLEARN_BACK_ADMIN_LOGIN:
+      SUBLEARN_BACK_ADMIN_PASSWORD:
 
   sublearn-db:
     container_name: sublearn-db
@@ -49,8 +55,41 @@ services:
       TG_USERNAME:
       SPRING_REDIS_HOST: redis
       SUBLEARN_BACK_URL: http://ms-sublearn-back:8080/api
+      SUBLEARN_BACK_LOGIN:
+      SUBLEARN_BACK_PASSWORD:
+
+  sublearn-competition-db:
+    image: postgres:11-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: passw0rd
+      POSTGRES_DB: competitiondb
+    ports:
+      - 15430:5432
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./postgres-competition-data:/var/lib/postgresql/data
+
+  ms-sublearn-competition:
+    image: almazic91/sub-learn-competition:${COMPETITION_IMAGE_VERSION}
+    depends_on:
+      - sublearn-competition-db
+      - rabbitmq
+    ports:
+      - 8084:8080
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://sublearn-db:5432/sublearndb
+      SPRING_PROFILES_ACTIVE: default
+      SERVER_PORT: 8080
+
 
   redis:
     container_name: redis
     image: redis
-    restart: always                  
+    restart: always  
+  
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq
+    restart: always
