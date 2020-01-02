@@ -3,30 +3,29 @@ version: '3.4'
 services:
   ms-sublearn-back:
     image: almazic91/sub-learn-back:${BACK_IMAGE_VERSION}
+    restart: always
     depends_on:
       - sublearn-db
       - ms-sublearn-translator
-      - rabbitmq
-      - redis
     ports:
       - 8080:8080
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://sublearn-db:5432/sublearndb
       SPRING_PROFILES_ACTIVE: default
       SERVER_PORT: 8080
-      SUBLEARN_BACK_USER_LOGIN:
-      SUBLEARN_BACK_USER_PASSWORD:
-      SUBLEARN_BACK_ADMIN_LOGIN:
-      SUBLEARN_BACK_ADMIN_PASSWORD:
+      SUBLEARN_BACK_USER_LOGIN: ${SUBLEARN_BACK_USER_LOGIN}
+      SUBLEARN_BACK_USER_PASSWORD: ${SUBLEARN_BACK_USER_PASSWORD}
+      SUBLEARN_BACK_ADMIN_LOGIN: ${SUBLEARN_BACK_ADMIN_LOGIN}
+      SUBLEARN_BACK_ADMIN_PASSWORD: ${SUBLEARN_BACK_ADMIN_PASSWORD}
 
   sublearn-db:
     container_name: sublearn-db
     image: postgres:11-alpine
     restart: always
     environment:
-      POSTGRES_USER:
-      POSTGRES_PASSWORD:
-      POSTGRES_DB:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: passw0rd
+      POSTGRES_DB: sublearndb
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
 
@@ -37,26 +36,27 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: default
       SERVER_PORT: 8080
-      YANDEX_DICT_URL:
-      YANDEX_DICT_KEY:
-      YANDEX_TRANSLATE_URL:
-      YANDEX_TRANSLATE_KEY:
+      YANDEX_DICT_URL: https://dictionary.yandex.net/api/v1/dicservice.json
+      YANDEX_DICT_KEY: dict.1.1.20190419T151535Z.dacea6e32b6807e0.d783a6655a6e2a7c7d41ff03e26edd45b99e91d2
+      YANDEX_TRANSLATE_URL: https://translate.yandex.net/api/v1.5/tr.json
+      YANDEX_TRANSLATE_KEY: trnsl.1.1.20190717T172037Z.a9a152a04e2ca9f6.cb421d610012a5a1b558a929f881c6eda12d7cae
 
   sub-learn-telegram:
     image: almazic91/sub-learn-telegram:${TELEGRAM_IMAGE_VERSION}
     depends_on:
       - redis
+      - rabbitmq
     ports:
       - 8082:8080
     environment:
       SPRING_PROFILES_ACTIVE: default
       SERVER_PORT: 8080
-      TG_TOKEN:
-      TG_USERNAME:
+      TG_TOKEN: ${TG_TOKEN}
+      TG_USERNAME: ${TG_USERNAME}
       SPRING_REDIS_HOST: redis
       SUBLEARN_BACK_URL: http://ms-sublearn-back:8080/api
-      SUBLEARN_BACK_LOGIN:
-      SUBLEARN_BACK_PASSWORD:
+      SUBLEARN_BACK_LOGIN: ${SUBLEARN_BACK_LOGIN}
+      SUBLEARN_BACK_PASSWORD: ${SUBLEARN_BACK_PASSWORD}
 
   sublearn-competition-db:
     image: postgres:11-alpine
@@ -65,30 +65,43 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: passw0rd
       POSTGRES_DB: competitiondb
-    ports:
-      - 15430:5432
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./postgres-competition-data:/var/lib/postgresql/data
 
   ms-sublearn-competition:
     image: almazic91/sub-learn-competition:${COMPETITION_IMAGE_VERSION}
+    restart: always
     depends_on:
       - sublearn-competition-db
       - rabbitmq
     ports:
       - 8084:8080
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://sublearn-db:5432/sublearndb
       SPRING_PROFILES_ACTIVE: default
       SERVER_PORT: 8080
-
+      
+  ms-sublearn-provider:
+    image: almazic91/sub-learn-provider:${PROVIDER_IMAGE_VERSION}
+    depends_on:
+      - ms-sublearn-back
+    restart: always
+    ports:
+      - 8085:8080
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+      SERVER_PORT: 8080
+      SUBLEARN_BACK_URL: http://ms-sublearn-back:8080/api
+      SUBLEARN_BACK_LOGIN: ${SUBLEARN_BACK_LOGIN}
+      SUBLEARN_BACK_PASSWORD: ${SUBLEARN_BACK_PASSWORD}
+      IMDB_API_KEY: ${IMDB_API_KEY}
+      OPENSUBTITLES_USERAGENT: ${OPENSUBTITLES_USERAGENT}
 
   redis:
     container_name: redis
     image: redis
-    restart: always  
-  
+    restart: always
+
   rabbitmq:
     container_name: rabbitmq
     image: rabbitmq
